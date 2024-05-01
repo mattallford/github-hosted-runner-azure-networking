@@ -1,0 +1,40 @@
+name: Azure Key Vault Secret Retrieval
+
+on:
+  workflow_dispatch:
+    inputs:
+      secretName:
+        description: 'Name of the secret in Azure Key Vault'
+        required: true
+        default: 'mySuperSecret' # You can set a default secret name or leave this empty
+      keyVaultName:
+          description: 'Name of the Azure Key Vault'
+          required: true
+          default: 'gh-runner-demo-kv-001' # You can set a default name or leave this empty
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  retrieve-secret:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Azure CLI
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Retrieve secret from Azure Key Vault
+        run: |
+          secretValue=$(az keyvault secret show --name ${{ github.event.inputs.secretName }} --vault-name ${{ github.event.inputs.keyVaultName }} --query value -o tsv)
+          echo "SECRET_VALUE=$secretValue" >> $GITHUB_ENV
+
+      - name: Display the secret (for demonstration only)
+        run: echo "The secret is $SECRET_VALUE"
